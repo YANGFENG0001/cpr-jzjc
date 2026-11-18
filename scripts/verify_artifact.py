@@ -25,6 +25,11 @@ with tempfile.TemporaryDirectory(prefix='modeltrace-package-check-') as director
     assert manifest['package']['protocolVersion'] == 7
     assert manifest['engines']['codex-proxy-rs'] == '>=3.44.0, <3.45.0'
     assert set(manifest['package']['files']) == {manifest['main'], *manifest['resources']}
+    plugin_id=manifest['publisher']+'.'+manifest['name']
+    assert isinstance(manifest['secretFields'], list)
+    for capability, declaration in manifest['contributes'].items():
+        assert declaration['id'].startswith(plugin_id+'.'), capability
+        assert declaration['version'] and declaration['stages'], capability
     for path, expected in manifest['package']['files'].items():
         assert hashlib.sha256((root/path).read_bytes()).hexdigest() == expected, path
     class Page(HTMLParser):
