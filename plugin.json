@@ -3,10 +3,10 @@
   "publisher": "personal",
   "name": "modeltrace-health",
   "displayName": "账号降智检测",
-  "version": "1.19.0",
-  "description": "ModelTrace 账户检测、自动复测、定时检查与指纹库在线更新",
+  "version": "1.20.0",
+  "description": "ModelTrace 与 Meow 双引擎账户检测、自动复测、定时检查与指纹库在线更新",
   "license": "MIT",
-  "engines": { "codex-proxy-rs": ">=3.43.0, <3.44.0" },
+  "engines": { "codex-proxy-rs": ">=3.44.0, <3.45.0" },
   "main": "bin/modeltrace-health",
   "runtime": "trustedProcess",
   "contributes": { "management": { "version": 2 }, "maintenance": {} },
@@ -22,6 +22,7 @@
   "state": [
     { "namespace": "control", "schemaVersion": 1, "schema": { "type": "object" }, "maximumRecords": 16, "maximumBytes": 1048576, "maximumValueBytes": 262144, "migratesFrom": [] },
     { "namespace": "jobs", "schemaVersion": 1, "schema": { "type": "object" }, "maximumRecords": 2000, "maximumBytes": 16777216, "maximumValueBytes": 262144, "migratesFrom": [] },
-    { "namespace": "banks", "schemaVersion": 1, "schema": { "type": "string" }, "maximumRecords": 160, "maximumBytes": 16777216, "maximumValueBytes": 262144, "migratesFrom": [] }
+    { "namespace": "banks", "schemaVersion": 1, "schema": { "type": "string" }, "maximumRecords": 160, "maximumBytes": 16777216, "maximumValueBytes": 262144, "migratesFrom": [] },
+    { "namespace": "meow", "schemaVersion": 1, "schema": { "type": "object" }, "maximumRecords": 16, "maximumBytes": 16777216, "maximumValueBytes": 262144, "migratesFrom": [] }
   ]
 }

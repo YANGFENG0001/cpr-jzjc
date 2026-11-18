@@ -4,6 +4,7 @@ mod engine;
 mod host;
 mod management;
 mod manager;
+mod meow;
 mod progress;
 use gateway_plugin_sdk::{
     CallBudgets, Manifest, PluginFault, Stage,
@@ -60,6 +61,12 @@ fn registration() -> ManagementRegistration {
         ("POST", "api/banks/apply"),
         ("POST", "api/banks/rollback"),
         ("POST", "api/banks/builtin"),
+        ("GET", "api/meow/bootstrap"),
+        ("POST", "api/meow/start"),
+        ("POST", "api/meow/step"),
+        ("POST", "api/meow/control"),
+        ("POST", "api/meow/delete"),
+        ("GET", "api/meow/report"),
     ]
     .into_iter()
     .map(|(m, p)| ManagementRoute {
@@ -261,6 +268,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     session.set_call_budgets(CallBudgets::from([(Stage::Maintenance, 180_000)]))?;
     let progress = Arc::new(progress::Progress::new());
     let manager = manager::Manager::new(progress.clone());
+    let meow = Arc::new(meow::Meow::new());
     let reload_signal = manager.reload_flag();
     let manager = Arc::new(Mutex::new(manager));
     let background = manager.clone();
@@ -269,6 +277,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let plugin = PluginBuilder::from_json(include_bytes!("../../plugin.json"))?
         .management(registration(), move |call| {
             let manager = manager.clone();
+            let meow = meow.clone();
             let progress = progress.clone();
             let reload_signal = management_reload.clone();
             async move {
@@ -290,7 +299,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 } else {
                     None
                 };
-                let result = if let Some(value) = cached {
+                let result = if call.request.path.starts_with("api/meow/") {
+                    meow.handle(&call).await
+                } else if let Some(value) = cached {
                     Ok(value)
                 } else if call.request.method == "POST" && call.request.path == "api/cancel" {
                     match serde_json::from_slice::<Value>(&call.payload) {

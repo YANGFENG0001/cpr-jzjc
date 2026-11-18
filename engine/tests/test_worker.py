@@ -66,5 +66,46 @@ class WorkerTests(unittest.TestCase):
             self.assertIsNot(worker.load(path), first)
 
 
+class MeowWorkerTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.catalog = worker.handle({"op": "meow_catalog"})
+        cls.plan = worker.handle({
+            "op": "meow_prepare", "tier": "low",
+            "claimed_model": cls.catalog["models"][0]["id"],
+            "request_model": cls.catalog["models"][0]["id"],
+        })
+
+    def test_catalog_has_three_tiers(self):
+        self.assertEqual({t["id"]: t["count"] for t in self.catalog["tiers"]}, {"low": 36, "medium": 72, "high": 108})
+        self.assertGreaterEqual(len(self.catalog["models"]), 2)
+
+    def test_prepare_builds_one_job_per_question(self):
+        self.assertEqual(len(self.plan["jobs"]), 36)
+        self.assertEqual(self.plan["retry_budget"], 18)
+        self.assertEqual(len({j["job_id"] for j in self.plan["jobs"]}), 36)
+
+    def test_payload_and_evaluate(self):
+        job = self.plan["jobs"][0]["job_id"]
+        body = worker.handle({"op": "meow_payload", "plan": self.plan, "jobId": job})
+        self.assertEqual(body["model"], self.plan["request_model"])
+        self.assertTrue(body["stream"])
+        self.assertLessEqual(body["max_output_tokens"], 256)
+        result = worker.handle({"op": "meow_evaluate", "plan": self.plan, "jobId": job, "text": "  42 "})
+        self.assertEqual(result["status"], "ok")
+        invalid = worker.handle({"op": "meow_evaluate", "plan": self.plan, "jobId": job, "text": ""})
+        self.assertEqual(invalid["status"], "error")
+
+    def test_score_without_samples_is_insufficient(self):
+        report = worker.handle({"op": "meow_score", "plan": self.plan, "results": []})
+        self.assertEqual(report["verdict"], "insufficient")
+        self.assertIn("samples_incomplete", report["reasons"])
+
+    def test_plan_hash_mismatch_is_rejected(self):
+        plan = dict(self.plan, hash="0" * 64)
+        with self.assertRaises(Exception):
+            worker.handle({"op": "meow_score", "plan": plan, "results": []})
+
+
 if __name__ == "__main__":
     unittest.main()

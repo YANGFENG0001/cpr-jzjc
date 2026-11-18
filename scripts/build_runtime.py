@@ -82,9 +82,9 @@ with zipfile.ZipFile(wheel) as z:
         if e.is_dir() or any(s in {"tests","__pycache__"} for s in p.parts) or p.suffix == ".pyc": continue
         output["usr/local/lib/python3.11/site-packages/"+e.filename] = (z.read(e),0o755 if ".so" in p.name else 0o644)
 
-for prefix in ("engine","vendor/modeltrace"):
+for prefix in ("engine","vendor/modeltrace","vendor/meow"):
     for p in (ROOT/prefix).rglob("*"):
-        if p.is_file() and not any(s in {"tests","__pycache__"} for s in p.parts): output[str(p.relative_to(ROOT))]=(p.read_bytes(),0o644)
+        if p.is_file() and not any(s in {"tests","__pycache__"} for s in p.parts): output[p.relative_to(ROOT).as_posix()]=(p.read_bytes(),0o644)
 
 pending = list(output.values()); seen = set(); used = set()
 while pending:

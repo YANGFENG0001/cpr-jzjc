@@ -9,6 +9,7 @@ import { ZTable, type TableColumn } from '@codex-proxy/ui/table'
 import { ZPagination } from '@codex-proxy/ui/pagination'
 import { ZDialog } from '@codex-proxy/ui/dialog'
 import Settings from './components/Settings.vue'
+import Meow from './components/Meow.vue'
 import { api, active, date, percent, status, verdict } from './api'
 import { createRequestId } from './request-id'
 import type { Account, Banks, Config, ErrorTrigger, Group, Job, Report } from './types'
@@ -17,7 +18,7 @@ type Tone = 'success' | 'danger' | 'warning' | 'info' | 'primary' | 'neutral'
 type Diagnostics = NonNullable<Report['attempts'][number]['diagnostics']>
 
 const tab = ref('accounts'), loading = ref(true), busy = ref(false), error = ref(''), notice = ref('')
-const tabs = [{ key:'accounts', label:'账户检测', icon:Users }, { key:'settings', label:'参数配置', icon:Settings2 }, { key:'history', label:'检测历史', icon:History }]
+const tabs = [{ key:'accounts', label:'账户检测', icon:Users }, { key:'meow', label:'Meow 体检', icon:Fingerprint }, { key:'settings', label:'参数配置', icon:Settings2 }, { key:'history', label:'检测历史', icon:History }]
 const accounts = ref<Account[]>([]), jobs = ref<Job[]>([]), config = ref<Config>(), banks = ref<Banks>()
 const allGroups = ref<Group[]>([])
 const keys = ref<{ id:string; name:string }[]>([]), revision = ref(0), settingsKey = ref(0), nextDue = ref<number|null>(null), scheduleError = ref<string|null>(null)
@@ -349,6 +350,8 @@ onUnmounted(() => { disposed=true; if(timer) clearTimeout(timer); if(clockTimer)
         <div class="list-footer"><ZPagination v-model:current-page="page" v-model:page-size="pageSize" :total="filtered.length" :page-sizes="[10,20,50,100]" /></div>
       </section>
     </template>
+
+    <Meow v-if="tab==='meow'" :accounts="accounts" :keys="keys" :busy="busy" @error="error=$event" @notice="notice=$event" />
 
     <Settings v-if="tab==='settings' && config && banks" :key="settingsKey" :config="config" :revision="revision" :banks="banks" :keys="keys" :accounts="accounts" :groups="allGroups" :selected="selected" :next-due="nextDue" :schedule-error="scheduleError" :error-trigger="errorTrigger" :busy="busy" @save="save" @bank="bank" @error="error=$event" />
 

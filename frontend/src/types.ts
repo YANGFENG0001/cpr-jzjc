@@ -17,4 +17,30 @@ export interface TriggerSource { code: number; requestId: string | null; message
 export interface ErrorTrigger { enabled: boolean; codes: number[]; since: number | null; checkedAt: number | null; error: string | null; matchedAt: number | null; matchedAccount: string | null; matchedCode: number | null; matchedTotal: number }
 export interface Report { trigger?: TriggerSource; source?: string; createdAt?: number; finishedAt?: number | null; roundAttempts?: number; progress?: Progress; id: string; accountId: string; accountName: string; status: string; verdict: string; message: string; config: Config; bankHash: string; bankCommit: string; engineCommit: string; disableState: string; disableError: string | null; groupState: string; groupError: string | null; attempts: { requestId: string | null; at: number; error: string | null; diagnostics?: { kind: string; elapsedMs: number; receivedBytes: number; outputBytes?: number; reasoningBytes?: number; partial?: boolean; budgetMs: number | null } | null }[]; rounds: { number: number; verdict: string; finishedAt: number; score: { prediction: string; probability: number; results: { model: string; label: string; family: string; probability: number }[]; families: { family: string; display_name: string; probability: number }[] } }[] }
 export interface Bridge { version: number; theme: string; request(input: { method: string; path: string; query?: string; contentType?: string; body?: string }): Promise<{ status: number; contentType: string; body: ArrayBuffer }> }
+export interface MeowCatalog {
+  engine_version: string; id: string; version: string; hash: string
+  models: { id: string; label: string }[]; tiers: { id: string; count: number }[]
+}
+export interface MeowAttempt { job_id: string; status: string; error: string | null; category?: string | null; request_id?: string | null; answer?: string }
+export interface MeowReport {
+  verdict?: string; color?: string; model?: string | null; claimed_model?: string; reasons?: string[]
+  matches?: Record<string, number>; scores?: Record<string, number>; thresholds?: Record<string, number>
+  cells?: Record<string, { planned: number; minimum: number; completed: number; valid: number; counts: Record<string, number> }>
+}
+export interface MeowSummary {
+  id: string; createdAt: number; updatedAt: number; accountId: string; accountName: string
+  keyId: string; keyName: string; requestModel: string; claimedModel: string; tier: string
+  baselineHash: string; engineVersion: string; status: string; attempts: number; planned: number
+  verdict?: string | null; model?: string | null; reasons?: string[]
+}
+export interface MeowPlan {
+  request_model: string; claimed_model: string; tier: string; version: string; engine_version: string
+  hash: string; jobs: unknown[]; retry_budget: number
+}
+export interface MeowRun {
+  id: string; createdAt: number; updatedAt: number; accountId: string; accountName: string
+  keyId: string; keyName: string; status: string; plan: MeowPlan; attempts: MeowAttempt[]
+  inflight: string | null; report: MeowReport
+}
+export interface MeowBridge { version: number; theme: string }
 declare global { interface Window { codexProxyPlugin?: Bridge } }

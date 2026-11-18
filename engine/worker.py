@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "vendor/modeltrace"))
 import fingerprint as fp
 import numpy as np
+import meow_engine
 
 MAX_BANK = 20 * 1024 * 1024
 
@@ -102,6 +103,8 @@ def cached_load(path, modified, size):
 
 def handle(data):
     operation = data["op"]
+    if operation.startswith("meow_"):
+        return meow_engine.handle(operation, data)
     if operation == "challenges":
         return fp.generate_challenges(1)
     if operation == "validate":

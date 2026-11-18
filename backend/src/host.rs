@@ -723,6 +723,103 @@ pub async fn execute(
         },
     }))
 }
+pub struct RawExecution {
+    pub request_id: String,
+    pub text: String,
+}
+
+/// 发送插件自建的 Responses 正文，只提取回答文本。
+/// Meow 体检用它保持题目自带的采样参数，不套用 ModelTrace 的配置。
+pub async fn execute_raw(
+    host: &HostClient,
+    account_id: &str,
+    key_id: &str,
+    model: &str,
+    body: Value,
+    limit: std::time::Duration,
+) -> Result<RawExecution, String> {
+    let request = ModelExecuteRequest {
+        client_key_id: Some(key_id.into()),
+        model: model.into(),
+        protocol: "openai".into(),
+        operation: ModelOperation::Generate,
+        provider: Some("openai".into()),
+        account_id: Some(account_id.into()),
+        previous_response_id: None,
+    };
+    let mut response = StreamResponse::default();
+    let mut request_id: Option<String> = None;
+    let mut stream = None;
+    let work = async {
+        let reply = host
+            .call(
+                "host.model.execute_stream",
+                serde_json::to_value(request).unwrap(),
+                serde_json::to_vec(&body).unwrap(),
+            )
+            .await
+            .map_err(|e| e.into_plugin_fault())?;
+        let result: ModelStreamResult =
+            serde_json::from_value(reply.result).map_err(|_| fault("宿主模型流格式无效"))?;
+        request_id = Some(result.request_id.clone());
+        stream = Some(result.stream.clone());
+        loop {
+            let reply = host
+                .call(
+                    "host.model.stream_read",
+                    json!({"stream":result.stream,"maximum_bytes":262144}),
+                    vec![],
+                )
+                .await
+                .map_err(|e| e.into_plugin_fault())?;
+            let state: ModelStreamReadResult =
+                serde_json::from_value(reply.result).map_err(|_| fault("流状态格式无效"))?;
+            let batch = if reply.payload.is_empty() && state.events == 0 {
+                ModelEventBatch::default()
+            } else {
+                ModelEventBatch::decode(&reply.payload).map_err(|_| fault("流事件格式无效"))?
+            };
+            if batch.events.len() != state.events as usize {
+                return Err(fault("流事件数量不一致"));
+            }
+            for event in batch.events {
+                if let Some(wire) = event.wire {
+                    if wire.protocol != "openai" {
+                        return Err(fault("模型协议无效"));
+                    }
+                    if response.terminal.is_none() {
+                        response.wire(wire.payload)?;
+                    }
+                }
+            }
+            if state.end {
+                return Ok::<(), PluginFault>(());
+            }
+        }
+    };
+    let result = tokio::time::timeout(limit, work).await;
+    if let Some(stream) = stream {
+        let _ = tokio::time::timeout(
+            std::time::Duration::from_millis(100),
+            host.call("host.model.stream_close", json!({"stream":stream}), vec![]),
+        )
+        .await;
+    }
+    match result {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => return Err(error.message),
+        Err(_) if response.raw_text().is_none() => return Err("模型请求超时".into()),
+        Err(_) => {}
+    }
+    let text = response
+        .raw_text()
+        .ok_or_else(|| "模型回答为空".to_string())?;
+    Ok(RawExecution {
+        request_id: request_id.unwrap_or_default(),
+        text,
+    })
+}
+
 /// Accepts Responses JSON, WebSocket messages and complete SSE frames.
 /// Terminal snapshots replace deltas so retransmitted text is not counted twice.
 #[derive(Default)]
@@ -870,6 +967,11 @@ impl StreamResponse {
     fn reasoning_bytes(&self) -> usize {
         self.reasoning_delta_bytes
             .max(self.reasoning_snapshot_bytes)
+    }
+
+    fn raw_text(&self) -> Option<String> {
+        let text = self.output.as_ref().unwrap_or(&self.delta);
+        (!text.trim().is_empty()).then(|| text.to_owned())
     }
 
     fn text(&self) -> Option<String> {

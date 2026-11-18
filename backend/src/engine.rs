@@ -146,6 +146,14 @@ impl Engine {
         &mut self,
         input: I,
     ) -> Result<O, PluginFault> {
+        self.call_with_timeout(input, std::time::Duration::from_secs(5))
+            .await
+    }
+    pub async fn call_with_timeout<I: Serialize, O: DeserializeOwned>(
+        &mut self,
+        input: I,
+        limit: std::time::Duration,
+    ) -> Result<O, PluginFault> {
         self.prepared().await?;
         if self.worker.is_none() {
             let mut command;
@@ -193,7 +201,7 @@ impl Engine {
         let mut bytes = serde_json::to_vec(&input).map_err(|_| fault("评分输入编码失败"))?;
         bytes.push(b'\n');
         let mut worker = self.worker.take().unwrap();
-        let result = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        let result = tokio::time::timeout(limit, async {
             worker
                 .stdin
                 .write_all(&bytes)
@@ -248,7 +256,7 @@ impl Engine {
                 let _ = worker.child.kill().await;
                 match other {
                     Ok(Err(error)) => Err(error),
-                    _ => Err(fault("离线评分超过5秒")),
+                    _ => Err(fault("离线评分超时")),
                 }
             }
         }

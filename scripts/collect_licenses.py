@@ -30,6 +30,10 @@ for package in metadata['packages']:
             if (directory/'LICENSE').exists():add('Codex Proxy RS',directory);break
             directory=directory.parent
 
+for name in ('modeltrace','meow'):
+    directory=ROOT/'vendor'/name
+    if directory.is_dir():add(f'Vendored {name}',directory)
+
 for node_root in (ROOT/'frontend/node_modules/.pnpm').iterdir():
     modules=node_root/'node_modules'
     if not modules.is_dir():continue

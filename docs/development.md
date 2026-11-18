@@ -10,6 +10,7 @@
 | `frontend/` | Vue / TypeScript 插件管理页面 |
 | `engine/` | Python / NumPy 校验与评分 worker |
 | `vendor/modeltrace/` | 固定版本的 ModelTrace 源码、候选库与原始许可 |
+| `vendor/meow/` | 固定版本的 Meow 检测器、GPT 基线与原始许可 |
 | `scripts/` | 运行时构建、打包、许可证收集及回归验证 |
 | `plugin.json` | 插件身份、宿主兼容范围、资源及私有状态声明 |
 | `docs/releases/` | 各发行版本的详细说明 |
@@ -25,7 +26,7 @@
 | Python | >=3.11，开发依赖见 `requirements-dev.txt` |
 | Zig / cargo-zigbuild | 构建 glibc 2.36 目标的发布二进制；当前发行使用 Zig 0.15.2 |
 | crane | 拉取构建脚本固定的 Python 运行时基础镜像；已有基础归档时可复用 |
-| cpr-plugin | 使用与宿主同版源码构建的官方打包工具，当前对应 CPR v3.43.0 |
+| cpr-plugin | 使用与宿主同版源码构建的官方打包工具，当前对应 CPR v3.44.0 |
 
 ```bash
 git clone https://github.com/Victor-Tau/cpr-jzjc.git
@@ -68,13 +69,13 @@ export OMP_NUM_THREADS=1
 task_cpu=0
 ```
 
-从 CPR 官方对应标签构建打包工具，沿用其 workspace 锁文件。当前 SDK 固定提交为 `402bc37fbb5c83378cc83cec89e9fa251e4a99c1`：
+从 CPR 官方对应标签构建打包工具，沿用其 workspace 锁文件。当前 SDK 固定提交为 `c622f085748f812936a7371fcc85d1621fa72ca8`：
 
 ```bash
-git clone --depth 1 --branch v3.43.0 \
-  https://github.com/zyycn/codex-proxy-rs.git .cache/codex-proxy-rs-v3.43.0
+git clone --depth 1 --branch v3.44.0 \
+  https://github.com/zyycn/codex-proxy-rs.git .cache/codex-proxy-rs-v3.44.0
 taskset -c "$task_cpu" cargo install \
-  --path .cache/codex-proxy-rs-v3.43.0/backend/apps/plugin-cli --locked
+  --path .cache/codex-proxy-rs-v3.44.0/backend/apps/plugin-cli --locked
 ```
 
 安装所需工具并激活虚拟环境后，可使用完整打包脚本：

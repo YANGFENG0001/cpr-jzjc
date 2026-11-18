@@ -28,10 +28,10 @@ with tarfile.open(fileobj=io.BytesIO(runtime)) as archive:
     for entry in archive:
         assert entry.isfile() and not Path(entry.name).is_absolute() and ".." not in Path(entry.name).parts
         files[entry.name] = (archive.extractfile(entry).read(), entry.mode)
-for prefix in ("engine", "vendor/modeltrace"):
+for prefix in ("engine","vendor/modeltrace","vendor/meow"):
     for file in (ROOT / prefix).rglob("*"):
         if file.is_file() and not any(part in {"tests", "__pycache__"} for part in file.parts):
-            files[str(file.relative_to(ROOT))] = (file.read_bytes(), 0o644)
+            files[file.relative_to(ROOT).as_posix()] = (file.read_bytes(), 0o644)
 
 destination = ROOT / "runtime/runtime.tar.gz"
 destination.parent.mkdir(parents=True, exist_ok=True)

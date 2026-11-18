@@ -1,4 +1,4 @@
-import type { Account, Banks, Config, ErrorTrigger, Group, Job, Report } from './types'
+import type { Account, Banks, Config, ErrorTrigger, Group, Job, MeowCatalog, MeowRun, MeowSummary, Report } from './types'
 
 export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const host = window.codexProxyPlugin
@@ -67,6 +67,15 @@ export const api = {
   retryDisable: (id: string) => request('POST', 'api/retry-disable', { id }),
   retryGroup: (id: string) => request('POST', 'api/retry-group', { id }),
   bank: (operation: 'check' | 'apply' | 'rollback' | 'builtin') => request<Banks>('POST', `api/banks/${operation}`, {}),
+}
+export const meowApi = {
+  bootstrap: () => request<{ catalog: MeowCatalog; runs: MeowSummary[] }>('GET', 'api/meow/bootstrap'),
+  start: (input: { accountId: string; keyId: string; requestModel: string; claimedModel: string; tier: string }) =>
+    request<{ run: MeowRun }>('POST', 'api/meow/start', input),
+  step: (id: string) => request<{ run: MeowRun }>('POST', 'api/meow/step', { id }),
+  control: (id: string, action: 'pause' | 'resume' | 'stop') => request<{ run: MeowRun }>('POST', 'api/meow/control', { id, action }),
+  delete: (id: string) => request<{ ok: boolean }>('POST', 'api/meow/delete', { id }),
+  report: (id: string) => request<{ run: MeowRun }>('GET', `api/meow/report?id=${encodeURIComponent(id)}`),
 }
 export const date = (value: number | string | null | undefined) => value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '—'
 export const percent = (n: number | null | undefined) => n == null ? '—' : `${(n * 100).toFixed(1)}%`
